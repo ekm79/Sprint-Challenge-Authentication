@@ -1,4 +1,6 @@
 const axios = require('axios');
+const bcrypt = require('bcryptjs');
+const db = require('./../database/dbConfig');
 
 const { authenticate } = require('./middlewares');
 
@@ -9,10 +11,43 @@ module.exports = server => {
 };
 
 function register(req, res) {
+  const credentials = req.body;
+  const hash = bcrypt.hashSync(credentials.password, 14);
+  credentials.password = hash;
+  db('users')
+  .insert(credentials)
+  .then(function(ids) {
+    db('users')
+    .where({id: ids[0]})
+    .first()
+    .then(user => {
+      const token = authenticate(user);
+      res.status(201).json(token);
+    })
+  })
+  .catch(err => {
+    res.status(500).json(err);
+  })
   // implement user registration
 }
 
 function login(req, res) {
+  const credentials = req.body;
+  db('users')
+  .where({username: credentials.username})
+  .first()
+  .then(function(user) {
+    if(user && bcrypt.coompareSync(credentials.username, user.username)) {
+      const token = authenticate(user);
+      res.status(200).json(token);
+    }
+    else{
+      return res.status(401).json({error: 'unauthorized'})
+    }
+  })
+  .catch(err => {
+    res.status(500).json({error: 'There was an error logging in'})
+  })
   // implement user login
 }
 
