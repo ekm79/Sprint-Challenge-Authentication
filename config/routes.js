@@ -39,7 +39,7 @@ function login(req, res) {
   .where({username: credentials.username})
   .first()
   .then(function(user) {
-    if(user && bcrypt.coompareSync(credentials.username, user.username)) {
+    if(user && bcrypt.compareSync(credentials.password, user.password)) {
       const token = authenticate(user);
       res.status(200).json(token);
     }
