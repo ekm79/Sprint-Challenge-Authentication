@@ -8,7 +8,9 @@ module.exports = server => {
   server.post('/api/register', register);
   server.post('/api/login', login);
   server.get('/api/jokes', authenticate, getJokes);
+  server.get('/api/users', getUsers);
 };
+
 
 function register(req, res) {
   const credentials = req.body;
@@ -62,4 +64,14 @@ function getJokes(req, res) {
     .catch(err => {
       res.status(500).json({ message: 'Error Fetching Jokes', error: err });
     });
+}
+
+function getUsers(req, res) {
+  db('users').select('username', 'password')
+  .then(user => {
+          res.status(200).json(user)
+  })
+  .catch(err => {
+      res.status(500).json({error: 'You shall not pass!'})
+  })
 }
