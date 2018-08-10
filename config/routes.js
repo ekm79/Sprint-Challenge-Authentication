@@ -1,13 +1,15 @@
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const db = require('./../database/dbConfig');
+const jwt = require('jsonwebtoken');
+const jwtKey = require('../_secrets/keys').jwtKey;
 
 const { authenticate } = require('./middlewares');
 
 module.exports = server => {
   server.post('/api/register', register);
   server.post('/api/login', login);
-  server.get('/api/jokes', authenticate, getJokes);
+  server.get('/api/jokes', checkLogIn, getJokes);
   server.get('/api/users', getUsers);
 };
 
@@ -23,7 +25,8 @@ function register(req, res) {
     .where({id: ids[0]})
     .first()
     .then(user => {
-      const token = authenticate(user);
+      const token = generateToken(user);
+      console.log(token);
       res.status(201).json(token);
     })
   })
@@ -40,8 +43,9 @@ function login(req, res) {
   .first()
   .then(function(user) {
     if(user && bcrypt.compareSync(credentials.password, user.password)) {
-      const token = authenticate(user);
+      const token = generateToken(user);
       res.status(200).json(token);
+      console.log(token);
     }
     else{
       return res.status(401).json({error: 'unauthorized'})
@@ -74,4 +78,26 @@ function getUsers(req, res) {
   .catch(err => {
       res.status(500).json({error: 'You shall not pass!'})
   })
+}
+
+function generateToken(user) {
+  const payload = {
+      username: user.username,
+      password: user.password,
+  }
+  const options = {
+      expiresIn: '1d',
+      }
+      return jwt.sign(payload, jwtKey, options)
+}
+
+function checkLogIn (req, res, next) {
+  const token = req.headers.authorization;
+  if(token) {
+      jwt.verify(token, jwtKey, (err, decodedToken) => {
+          next()
+      })
+  }else {
+      return res.status(401).json({error: 'Incorrect credentials'})
+  }
 }
